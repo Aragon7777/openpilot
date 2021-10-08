@@ -7,6 +7,7 @@ from selfdrive.car import create_gas_command
 from selfdrive.car.honda import hondacan
 from selfdrive.car.honda.values import CruiseButtons, CAR, VISUAL_HUD, HONDA_BOSCH, HONDA_NIDEC_ALT_PCM_ACCEL, CarControllerParams
 from opendbc.can.packer import CANPacker
+from common.params import Params
 
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 
@@ -60,21 +61,19 @@ def actuator_hystereses(brake, braking, brake_steady, v_ego, car_fingerprint):
   return brake, braking, brake_steady
 
 
-def brake_pump_hysteresis(apply_brake, apply_brake_last, last_pump_ts, ts):
-  pump_on = False
-
-  # reset pump timer if:
-  # - there is an increment in brake request
-  # - we are applying steady state brakes and we haven't been running the pump
-  #   for more than 20s (to prevent pressure bleeding)
-  if apply_brake > apply_brake_last or (ts - last_pump_ts > 20. and apply_brake > 0):
-    last_pump_ts = ts
-
-  # once the pump is on, run it for at least 0.2s
-  if ts - last_pump_ts < 0.2 and apply_brake > 0:
+def brake_pump_hysteresis(apply_brake, apply_brake_last, last_pump_on_state, ts):
+  if (apply_brake > apply_brake_last):
     pump_on = True
 
-  return pump_on, last_pump_ts
+  if (apply_brake == apply_brake_last):
+    pump_on = last_pump_on_state
+
+  if (apply_brake < apply_brake_last):
+    pump_on = False
+
+  last_pump_on_state = pump_on
+
+  return pump_on, last_pump_on_state
 
 
 def process_hud_alert(hud_alert):
@@ -106,7 +105,7 @@ class CarController():
     self.brake_last = 0.
     self.signal_last = 0.
     self.apply_brake_last = 0
-    self.last_pump_ts = 0.
+    self.last_pump_on_state = False
     self.packer = CANPacker(dbc_name)
 
     self.params = CarControllerParams(CP)
@@ -126,14 +125,10 @@ class CarController():
     # *** apply brake hysteresis ***
     pre_limit_brake, self.braking, self.brake_steady = actuator_hystereses(brake, self.braking, self.brake_steady, CS.out.vEgo, CS.CP.carFingerprint)
 
-    # *** no output if not enabled ***
-    if not enabled and CS.out.cruiseState.enabled:
-      # send pcm acc cancel cmd if drive is disabled but pcm is still on, or if the system can't be activated
+    if CS.CP.enableGasInterceptor:
+      pcm_cancel_cmd = False
+    else:
       pcm_cancel_cmd = True
-
-    # Never send cancel command if we never enter cruise state (no cruise if pedal)
-    # Cancel cmd causes brakes to release at a standstill causing grinding
-    pcm_cancel_cmd = pcm_cancel_cmd and CS.CP.pcmCruise
 
     # *** rate limit after the enable check ***
     self.brake_last = rate_limit(pre_limit_brake, self.brake_last, -2., DT_CTRL)
@@ -175,8 +170,8 @@ class CarController():
 
 
     # TODO: pass in LoC.long_control_state and use that to decide starting/stoppping
-    stopping = accel < 0 and CS.out.vEgo < 0.3
-    starting = accel > 0 and CS.out.vEgo < 0.3
+    stopping = accel < 0 and CS.out.vEgo < 0.05 if Params().get_bool('SmoothStop') else 0.3
+    starting = accel > 0 and CS.out.vEgo < 0.05 if Params().get_bool('SmoothStop') else 0.3
 
     # Prevent rolling backwards
     accel = -4.0 if stopping else accel
@@ -237,7 +232,7 @@ class CarController():
           apply_brake = int(clip(apply_brake * P.BRAKE_MAX, 0, P.BRAKE_MAX - 1))
           if not CS.out.cruiseState.enabled and not (CS.CP.pcmCruise and CS.accEnabled and CS.CP.minEnableSpeed > 0 and not CS.out.cruiseState.enabled):
             apply_brake = 0.
-          pump_on, self.last_pump_ts = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_ts, ts)
+          pump_on, self.last_pump_on_state = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_on_state, ts)
 
           pcm_override = True
           can_sends.append(hondacan.create_brake_command(self.packer, apply_brake, pump_on,
@@ -249,7 +244,7 @@ class CarController():
             gas_mult = interp(CS.out.vEgo, [0., 10.], [0.4, 1.0])
             # send exactly zero if apply_gas is zero. Interceptor will send the max between read value and apply_gas.
             # This prevents unexpected pedal range rescaling
-            apply_gas = clip(gas_mult * gas, 0., 1.)
+            apply_gas = clip(gas_mult * (gas - brake + wind_brake*3/4), 0., 1.)
             if not CS.out.cruiseState.enabled:
               apply_gas = 0.
             can_sends.append(create_gas_command(self.packer, apply_gas, idx))
@@ -260,6 +255,6 @@ class CarController():
     # Send dashboard UI commands.
     if (frame % 10) == 0:
       idx = (frame//10) % 4
-      can_sends.extend(hondacan.create_ui_commands(self.packer, pcm_speed, hud, CS.CP.carFingerprint, CS.is_metric, idx, CS.CP.openpilotLongitudinalControl, CS.stock_hud))
+      can_sends.extend(hondacan.create_ui_commands(self.packer, pcm_speed, hud, enabled, stopping, CS.CP.carFingerprint, CS.is_metric, idx, CS.CP.openpilotLongitudinalControl, CS.stock_hud))
 
     return can_sends

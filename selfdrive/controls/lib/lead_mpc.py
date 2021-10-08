@@ -1,43 +1,14 @@
 import math
 import numpy as np
-from common.numpy_fast import interp
+from common.numpy_fast import interp, interp2d
 from common.realtime import sec_since_boot
 from selfdrive.modeld.constants import T_IDXS
 from selfdrive.controls.lib.radar_helpers import _LEAD_ACCEL_TAU
 from selfdrive.controls.lib.lead_mpc_lib import libmpc_py
 from selfdrive.controls.lib.drive_helpers import MPC_COST_LONG, CONTROL_N
+from selfdrive.controls.lib.follow_helpers import STOPPING_DISTANCE, get_distance_cost, get_follow_profile
 from selfdrive.swaglog import cloudlog
 
-# One, two and three bar distances (in s)
-ONE_BAR_DISTANCE = 0.9  # in seconds
-TWO_BAR_DISTANCE = 1.3  # in seconds
-THREE_BAR_DISTANCE = 1.8  # in seconds
-FOUR_BAR_DISTANCE = 2.3   # in seconds
-STOPPING_DISTANCE = 0.4 # distance between you and lead car when you come to stop
-TR = TWO_BAR_DISTANCE  # default interval
-
-# Variables that change braking profiles
-CITY_SPEED = 22.4  # braking profile changes when below this speed based on following dynamics below [m/s]
-
-# City braking profile changes (makes the car brake harder because it wants to be farther from the lead car - increase to brake harder)
-ONE_BAR_PROFILE = [ONE_BAR_DISTANCE, 2.5]
-ONE_BAR_PROFILE_BP = [0, 2.75]
-
-TWO_BAR_PROFILE = [TWO_BAR_DISTANCE, 2.5]
-TWO_BAR_PROFILE_BP = [0, 3.0]
-
-THREE_BAR_PROFILE = [THREE_BAR_DISTANCE, 2.5]
-THREE_BAR_PROFILE_BP = [0.0, 4.0]
-
-# Highway braking profiles
-H_ONE_BAR_PROFILE = [ONE_BAR_DISTANCE, ONE_BAR_DISTANCE+0.3]
-H_ONE_BAR_PROFILE_BP = [0.0, 2.5]
-
-H_TWO_BAR_PROFILE = [TWO_BAR_DISTANCE, TWO_BAR_DISTANCE+0.2]
-H_TWO_BAR_PROFILE_BP = [0.0, 3.0]
-
-H_THREE_BAR_PROFILE = [THREE_BAR_DISTANCE, THREE_BAR_DISTANCE+0.1]
-H_THREE_BAR_PROFILE_BP = [0.0, 4.0]
 
 MPC_T = list(np.arange(0,1.,.2)) + list(np.arange(1.,10.6,.6))
 
@@ -52,22 +23,11 @@ class LeadMpc():
     self.new_lead = False
 
     self.v_rel = 0.0
-    self.lastTR = 2
-
+    self.distance_cost_last = MPC_COST_LONG.DISTANCE
     self.last_cloudlog_t = 0.0
     self.n_its = 0
     self.duration = 0
     self.status = False
-
-    self.oneBarBP = [-0.1, 2.25]
-    self.twoBarBP = [-0.1, 2.5]
-    self.threeBarBP = [0, 3.0]
-    self.oneBarProfile = [ONE_BAR_DISTANCE, 2.1]
-    self.twoBarProfile = [TWO_BAR_DISTANCE, 2.1]
-    self.threeBarProfile = [THREE_BAR_DISTANCE, 2.1]
-    self.oneBarHwy = [ONE_BAR_DISTANCE, ONE_BAR_DISTANCE + 0.4]
-    self.twoBarHwy = [TWO_BAR_DISTANCE, TWO_BAR_DISTANCE + 0.3]
-    self.threeBarHwy = [THREE_BAR_DISTANCE, THREE_BAR_DISTANCE + 0.1]
 
     self.v_solution = np.zeros(CONTROL_N)
     self.a_solution = np.zeros(CONTROL_N)
@@ -89,6 +49,17 @@ class LeadMpc():
     a_safe = a
     self.cur_state[0].v_ego = v_safe
     self.cur_state[0].a_ego = a_safe
+
+  def update_follow_profile(self, CS):
+    if CS.vEgo < CITY_SPEED:
+      query = BRAKING if CS.vEgo < BRAKING_SPEED else CS.readdistancelines
+      self.profile = PROFILES_CITY.get(query, DEFAULT_PROFILE)
+    else:
+      query = CS.readdistancelines
+      self.profile = PROFILES_HWY.get(query, DEFAULT_PROFILE)
+
+  def distance_cost(self, TR):
+    return interp(TR, COSTS_TR, COSTS_DISTANCE)
 
   def update(self, CS, radarstate, v_cruise):
     v_ego = CS.vEgo
@@ -130,55 +101,13 @@ class LeadMpc():
       self.a_lead_tau = _LEAD_ACCEL_TAU
 
     # Calculate conditions
-    self.v_rel = v_lead - v_ego   # calculate relative velocity vs lead car
-
-    # Is the car running surface street speeds?
-    if v_ego < CITY_SPEED:
-      self.street_speed = 1
-    else:
-      self.street_speed = 0
-
-    # Calculate mpc
-    # Adjust distance from lead car when distance button pressed 
-    if CS.readdistancelines == 1:
-      if self.street_speed:
-        TR = interp(-self.v_rel, self.oneBarBP, self.oneBarProfile)  
-      else:
-        TR = interp(-self.v_rel, H_ONE_BAR_PROFILE_BP, self.oneBarHwy) 
-      if CS.readdistancelines != self.lastTR:
-        self.libmpc.init(MPC_COST_LONG.TTC, 1.0, MPC_COST_LONG.ACCELERATION, MPC_COST_LONG.JERK)
-        self.lastTR = CS.readdistancelines  
-
-    elif CS.readdistancelines == 2:
-      if self.street_speed:
-        TR = interp(-self.v_rel, self.twoBarBP, self.twoBarProfile)
-      else:
-        TR = interp(-self.v_rel, H_TWO_BAR_PROFILE_BP, self.twoBarHwy)
-      if CS.readdistancelines != self.lastTR:
-        self.libmpc.init(MPC_COST_LONG.TTC, MPC_COST_LONG.DISTANCE, MPC_COST_LONG.ACCELERATION, MPC_COST_LONG.JERK)
-        self.lastTR = CS.readdistancelines  
-
-    elif CS.readdistancelines == 3:
-      if self.street_speed:
-        TR = interp(-self.v_rel, self.threeBarBP, self.threeBarProfile)
-      else:
-        TR = interp(-self.v_rel, H_THREE_BAR_PROFILE_BP, self.threeBarHwy)
-      if CS.readdistancelines != self.lastTR:
-        self.libmpc.init(MPC_COST_LONG.TTC, MPC_COST_LONG.DISTANCE, MPC_COST_LONG.ACCELERATION, MPC_COST_LONG.JERK)
-        self.lastTR = CS.readdistancelines   
-
-    elif CS.readdistancelines == 4:
-      TR = FOUR_BAR_DISTANCE
-      if CS.readdistancelines != self.lastTR:
-        self.libmpc.init(MPC_COST_LONG.TTC, MPC_COST_LONG.DISTANCE, MPC_COST_LONG.ACCELERATION, MPC_COST_LONG.JERK) 
-        self.lastTR = CS.readdistancelines      
-
-    else:
-     TR = TWO_BAR_DISTANCE # if readdistancelines != 1,2,3,4
-     self.libmpc.init(MPC_COST_LONG.TTC, MPC_COST_LONG.DISTANCE, MPC_COST_LONG.ACCELERATION, MPC_COST_LONG.JERK)
-
-    if CS.vEgo < 8:
-      TR = 1.8 
+    self.v_rel = v_lead - v_ego
+    profile = get_follow_profile(CS)
+    TR = interp2d((-self.v_rel, v_ego), profile.speeds, profile.arrs)
+    distance_cost = get_distance_cost(TR)
+    if distance_cost != self.distance_cost_last:
+      self.libmpc.change_costs(MPC_COST_LONG.TTC, distance_cost, MPC_COST_LONG.ACCELERATION, MPC_COST_LONG.JERK)
+      self.distance_cost_last = distance_cost
 
     t = sec_since_boot()
     self.n_its = self.libmpc.run_mpc(self.cur_state, self.mpc_solution, self.a_lead_tau, a_lead, TR)

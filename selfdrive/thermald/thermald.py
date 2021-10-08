@@ -16,7 +16,8 @@ from common.params import Params, ParamKeyType
 from common.realtime import DT_TRML, sec_since_boot
 from common.dict_helpers import strip_deprecated_keys
 from selfdrive.controls.lib.alertmanager import set_offroad_alert
-from selfdrive.hardware import EON, TICI, HARDWARE
+from selfdrive.controls.lib.pid import PIDController
+from selfdrive.hardware import EON, TICI, PC, HARDWARE
 from selfdrive.loggerd.config import get_available_percent
 from selfdrive.pandad import get_expected_signature
 from selfdrive.swaglog import cloudlog
@@ -172,6 +173,9 @@ def thermald_thread():
 
   HARDWARE.initialize_hardware()
   thermal_config = HARDWARE.get_thermal_config()
+
+  # TODO: use PI controller for UNO
+  controller = PIDController(k_p=0, k_i=2e-3, neg_limit=-80, pos_limit=0, rate=(1 / DT_TRML))
 
   if params.get_bool("IsOnroad"):
     cloudlog.event("onroad flag not cleared")

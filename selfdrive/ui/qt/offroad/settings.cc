@@ -69,7 +69,7 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                                  this);
   toggles.append(record_toggle);
   toggles.append(new ParamControl("EndToEndToggle",
-                                  "Dynamic Lane Profile",
+                                  "Dynamic Lane Profile Button",
                                   "In this mode openpilot will change models automatically or based on the button while onroad.",
                                   "../assets/offroad/icon_road.png",
                                   this));
@@ -81,27 +81,33 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                 this));
                       
   toggles.append(new ParamControl("CommaPedalEnhancements",
-                                "Comma Pedal Enhancements",
+                                "Comma Pedal: Tuning Adjustments",
                                 "Specific adjustments to the comma pedal to optomize the tuning. Includes faster acceleration.",
                                 "../assets/offroad/icon_openpilot.png",
                                 this));
 
+  toggles.append(new ParamControl("SpeedInc",
+                                "Comma Pedal: (+/-) 5 Increments",
+                                "This reverses the default well-known logic of pressing for +1 and holding for +5. Only works with the pedal installed.",
+                                "../assets/offroad/icon_openpilot.png",
+                                this));
+
   toggles.append(new ParamControl("SmoothStop",
-                                "Eliminate jerk at complete stop (Beta)",
-                                "Openpilot tends to apply the brakes too quickly when coming to a full stop resulting in a jerk that isn't smooth. This parameter should smoothen that out. Tested on the civic but use caution as larger vehicles may not hold correctly at a stop.",
+                                "Eliminate Standstill Jerk (Experimental)",
+                                "Openpilot tends to go to the standstill phase too early when coming to a full stop resulting in a jerk that isn't smooth as the controller mashes the brakes down to hold the car. This parameter should smoothen that out. Tested on the civic but use caution as larger vehicles may not hold correctly at a stop.",
                                 "../assets/offroad/icon_openpilot.png",
                                 this));
 
 
   toggles.append(new ParamControl("TorqueLimitSound",
-                                "Steering Torque Limit Audible Alert",
+                                "Audible Alerts: Steering Torque Limit",
                                 "Enabling this will make a sound effect when the car uses up all of the available steering torque.",
                                 "../assets/offroad/icon_openpilot.png",
                                 this));
 
   toggles.append(new ParamControl("CivicSpeedAdjustment",
-                                "Honda Civic Align Speed",
-                                "In MPH, the civic rounds slightly too low. This feature makes openpilot accelerate that extra 0.5mph so the two speeds on the dash line up. (No more staying at 69 when set at 70).",
+                                "Nidec Honda Civic: Speedometer Rounding Fix",
+                                "In MPH, the civic rounds slightly too low. This feature makes openpilot accelerate an extra 0.76% so the two speeds on the dash line up. (No more staying at 69 when set at 70).",
                                 "../assets/offroad/icon_openpilot.png",
                                 this));
 

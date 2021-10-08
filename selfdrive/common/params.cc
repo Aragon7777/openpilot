@@ -230,6 +230,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"TorqueLimitSound", PERSISTENT},
     {"SmoothStop", PERSISTENT},
     {"CommaPedalEnhancements", PERSISTENT},
+    {"SpeedInc", PERSISTENT},
 };
 
 } // namespace

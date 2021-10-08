@@ -343,7 +343,7 @@ class CarState(CarStateBase):
     ret.cruiseState.available = bool(main_on)
 
     # Gets rid of Pedal Grinding noise when brake is pressed at slow speeds for some models
-    if self.CP.carFingerprint in (CAR.PILOT, CAR.PILOT_2019, CAR.RIDGELINE):
+    if self.CP.carFingerprint in (CAR.PILOT, CAR.PILOT_2019, CAR.RIDGELINE, CAR.CIVIC):
       if ret.brake > 0.05:
         ret.brakePressed = True
 
@@ -417,7 +417,8 @@ class CarState(CarStateBase):
       self.stock_hud = False
       ret.stockFcw = False
     else:
-      ret.stockFcw = cp_cam.vl["BRAKE_COMMAND"]["FCW"] != 0
+      #self.stock_fcw = bool(cp_cam.vl["BRAKE_COMMAND"]["FCW"] != 0)
+      self.stock_fcw = False  # Disable stock Honda FCW which constantly false alerts on almost every passing car on a two-lane road. Keep AEB enabled.
       self.stock_hud = cp_cam.vl["ACC_HUD"]
       self.stock_brake = cp_cam.vl["BRAKE_COMMAND"]
 

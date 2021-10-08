@@ -68,6 +68,25 @@ void init(double ttcCost, double distanceCost, double accelerationCost, double j
 
 }
 
+void change_costs(double ttcCost, double distanceCost, double accelerationCost, double jerkCost){
+  int    i;
+  const int STEP_MULTIPLIER = 3;
+
+  for (i = 0; i < N; i++) {
+    int f = 1;
+    if (i > 4){
+      f = STEP_MULTIPLIER;
+    }
+    acadoVariables.W[16 * i + 0] = ttcCost * f; // exponential cost for time-to-collision (ttc)
+    acadoVariables.W[16 * i + 5] = distanceCost * f; // desired distance
+    acadoVariables.W[16 * i + 10] = accelerationCost * f; // acceleration
+    acadoVariables.W[16 * i + 15] = jerkCost * f; // jerk
+  }
+  acadoVariables.WN[0] = ttcCost * STEP_MULTIPLIER; // exponential cost for danger zone
+  acadoVariables.WN[4] = distanceCost * STEP_MULTIPLIER; // desired distance
+  acadoVariables.WN[8] = accelerationCost * STEP_MULTIPLIER; // acceleration
+}
+
 void init_with_simulation(double v_ego, double x_l_0, double v_l_0, double a_l_0, double l){
   int i;
 

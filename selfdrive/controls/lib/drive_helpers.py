@@ -1,12 +1,13 @@
 from cereal import car
 from common.numpy_fast import clip, interp
 from common.realtime import DT_MDL
+from common.params import Params
 from selfdrive.config import Conversions as CV
 from selfdrive.modeld.constants import T_IDXS
 
 
 # kph
-V_CRUISE_MAX = 135
+V_CRUISE_MAX = 200
 V_CRUISE_MIN = 0
 V_CRUISE_DELTA = 5
 V_CRUISE_ENABLE_MIN = 0
@@ -43,20 +44,35 @@ def update_v_cruise(v_cruise_kph, buttonEvents, enabled, cur_time, accel_pressed
   
   if enabled:
     if accel_pressed:
-      if ((cur_time-accel_pressed_last) >= 0.5 or (fastMode and (cur_time-accel_pressed_last) >= 0.5)):
-        v_cruise_kph += V_CRUISE_DELTA - (v_cruise_kph % V_CRUISE_DELTA)
+      if Params().get_bool('SpeedInc'):
+        if ((cur_time-accel_pressed_last) >= 0.5 or (fastMode and (cur_time-accel_pressed_last) >= 1.0)):
+          v_cruise_kph += 1
+      else:
+        if ((cur_time-accel_pressed_last) >= 0.5 or (fastMode and (cur_time-accel_pressed_last) >= 0.5)):
+          v_cruise_kph += V_CRUISE_DELTA - (v_cruise_kph % V_CRUISE_DELTA)
     elif decel_pressed:
-      if ((cur_time-decel_pressed_last) >= 0.5 or (fastMode and (cur_time-decel_pressed_last) >= 0.5)):
-        v_cruise_kph -= V_CRUISE_DELTA - ((V_CRUISE_DELTA - v_cruise_kph) % V_CRUISE_DELTA)
+      if Params().get_bool('SpeedInc'):
+        if ((cur_time-decel_pressed_last) >= 0.5 or (fastMode and (cur_time-decel_pressed_last) >= 1.0)):
+          v_cruise_kph -= 1
+      else:
+        if ((cur_time-accel_pressed_last) >= 0.5 or (fastMode and (cur_time-decel_pressed_last) >= 0.5)):
+          v_cruise_kph -= V_CRUISE_DELTA - ((V_CRUISE_DELTA - v_cruise_kph) % V_CRUISE_DELTA)
     else:
       for b in buttonEvents:
         if not b.pressed:
           if b.type == car.CarState.ButtonEvent.Type.accelCruise:
             if (not fastMode):
-              v_cruise_kph += 1
+              if Params().get_bool('SpeedInc'):
+                v_cruise_kph += V_CRUISE_DELTA - (v_cruise_kph % V_CRUISE_DELTA)
+              else:
+                v_cruise_kph += 1
           elif b.type == car.CarState.ButtonEvent.Type.decelCruise:
             if (not fastMode):
-              v_cruise_kph -= 1
+              if Params().get_bool('SpeedInc'):
+                v_cruise_kph -= V_CRUISE_DELTA - ((V_CRUISE_DELTA - v_cruise_kph) % V_CRUISE_DELTA)
+              else:
+                v_cruise_kph -= 1
+
     v_cruise_kph = clip(v_cruise_kph, V_CRUISE_MIN, V_CRUISE_MAX) 
 
   return v_cruise_kph

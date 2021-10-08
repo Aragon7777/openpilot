@@ -67,7 +67,7 @@ def create_brake_command(packer, apply_brake, pump_on, pcm_override, pcm_cancel_
     "COMPUTER_BRAKE_REQUEST": brake_rq,
     "SET_ME_1": 1,
     "BRAKE_LIGHTS": brakelights,
-    "CHIME": stock_brake["CHIME"] if fcw else 0,  # send the chime for stock fcw
+    "CHIME": 0,  # chime issued when disabling FCM
     "FCW": fcw << 1,  # TODO: Why are there two bits for fcw?
     "AEB_REQ_1": 0,
     "AEB_REQ_2": 0,
@@ -132,7 +132,7 @@ def create_bosch_supplemental_1(packer, car_fingerprint, idx):
   return packer.make_can_msg("BOSCH_SUPPLEMENTAL_1", bus, values, idx)
 
 
-def create_ui_commands(packer, pcm_speed, hud, car_fingerprint, is_metric, idx, openpilot_longitudinal_control, stock_hud):
+def create_ui_commands(packer, pcm_speed, hud, enabled, stopping, car_fingerprint, is_metric, idx, openpilot_longitudinal_control, stock_hud):
   commands = []
   bus_pt = get_pt_bus(car_fingerprint)
   radar_disabled = car_fingerprint in HONDA_BOSCH and openpilot_longitudinal_control
@@ -143,6 +143,8 @@ def create_ui_commands(packer, pcm_speed, hud, car_fingerprint, is_metric, idx, 
     speed_units = 2
   else:
     speed_units = 3
+
+  standstill = 1 if enabled and stopping else 0
 
   if openpilot_longitudinal_control:
     if car_fingerprint in HONDA_BOSCH:
@@ -158,9 +160,9 @@ def create_ui_commands(packer, pcm_speed, hud, car_fingerprint, is_metric, idx, 
       }
     else:
       acc_hud_values = {
+        'CRUISE_SPEED': 252 if standstill != 0 and hud.car != 0 else hud.v_cruise,
         'PCM_SPEED': pcm_speed * CV.MS_TO_KPH,
         'PCM_GAS': hud.pcm_accel,
-        'CRUISE_SPEED': hud.v_cruise,
         'ENABLE_MINI_CAR': 1,
         'HUD_LEAD': hud.car,
         'HUD_DISTANCE_3': 1 if hud.car != 0 else 0,

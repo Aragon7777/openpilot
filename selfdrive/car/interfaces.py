@@ -70,13 +70,13 @@ class CarInterfaceBase():
     ret.steerMaxV = [1.]
     ret.minSteerSpeed = 0.
 
-    ret.pcmCruise = True     # openpilot's state is tied to the PCM's cruise state on most cars
+    ret.pcmCruise = False if Params().get_bool('CommaPedalEnhancements') else True
     ret.minEnableSpeed = -1. # enable is done by stock ACC, so ignore this
     ret.steerRatioRear = 0.  # no rear steering, at least on the listed cars aboveA
     ret.openpilotLongitudinalControl = False
     ret.startAccel = 1.2
-    ret.minSpeedCan = 0.3
-    ret.stoppingDecelRate = 0.025 if Params().get_bool('SmoothStop') else 0.8 # brake_travel/s while trying to stop
+    ret.minSpeedCan = 0.05 if Params().get_bool('SmoothStop') else 0.3 # brake_travel/s while trying to stop
+    ret.stoppingDecelRate = 0.2
     ret.startingAccelRate = 3.2 # brake_travel/s while releasing on restart
     ret.stoppingControl = True
     ret.longitudinalTuning.deadzoneBP = [0.]
