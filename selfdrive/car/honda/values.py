@@ -359,6 +359,7 @@ FW_VERSIONS = {
       b'39990-TBG-A030\x00\x00',
       b'39990-TEA-T020\x00\x00',
       b'39990-TEG-A010\x00\x00',
+      b'39990-TEG,A010\x00\x00', # modified japan firmware
     ],
     (Ecu.srs, 0x18da53f1, None): [
       b'77959-TBA-A030\x00\x00',
