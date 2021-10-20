@@ -86,6 +86,12 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                 "../assets/offroad/icon_openpilot.png",
                                 this));
 
+  toggles.append(new ParamControl("ChillTune",
+                                "Nidec Honda: Chill ACC Tune",
+                                "Some Hondas perform smoother with the lower stock PID tune. The car will follow the set speed less agressively on both the accelerator and brakes. May not react to lead cars fast enough so this tune is optomized for a 2+ bar following distance on the highway to relax.",
+                                "../assets/offroad/icon_openpilot.png",
+                                this));
+
   toggles.append(new ParamControl("SpeedInc",
                                 "Comma Pedal: (+/-) 5 Increments",
                                 "This reverses the default well-known logic of pressing for +1 and holding for +5. Only works with the pedal installed.",
