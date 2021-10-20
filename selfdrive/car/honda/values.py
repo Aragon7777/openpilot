@@ -6,7 +6,7 @@ Ecu = car.CarParams.Ecu
 VisualAlert = car.CarControl.HUDControl.VisualAlert
 
 class CarControllerParams():
-  ACCEL_MAX = 3.2 if Params().get_bool('CommaPedalEnhancements') else 1.2
+  ACCEL_MAX = 3.2 if Params().get_bool('CommaPedalEnhancements') else 0.8
 
   def __init__(self, CP):
     self.BRAKE_MAX = 1024//4
