@@ -231,6 +231,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"SmoothStop", PERSISTENT},
     {"CommaPedalEnhancements", PERSISTENT},
     {"SpeedInc", PERSISTENT},
+    {"StoppedHUD", PERSISTENT},
 };
 
 } // namespace

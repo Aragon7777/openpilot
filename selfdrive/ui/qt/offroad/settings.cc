@@ -92,6 +92,12 @@ TogglesPanel::TogglesPanel(QWidget *parent) : QWidget(parent) {
                                 "../assets/offroad/icon_openpilot.png",
                                 this));
 
+  toggles.append(new ParamControl("StoppedHUD",
+                                "Nidec Honda: Stopped Indicator on Dash",
+                                "On Hondas, stock ACC reads 'stopped' in place of the set speed on the dash when the car becomes stationary behind a lead vehicle. This small visual change attempts to bring that back since stock openpilot longitudinal took it away. Visual change just for cool points.",
+                                "../assets/offroad/icon_openpilot.png",
+                                this));
+
   toggles.append(new ParamControl("SmoothStop",
                                 "Eliminate Standstill Jerk (Experimental)",
                                 "Openpilot tends to go to the standstill phase too early when coming to a full stop resulting in a jerk that isn't smooth as the controller mashes the brakes down to hold the car. This parameter should smoothen that out. Tested on the civic but use caution as larger vehicles may not hold correctly at a stop.",
