@@ -27,11 +27,11 @@ class CarControllerParams():
     self.BOSCH_GAS_LOOKUP_V = [0, 2000]
 
     if Params().get_bool('SmoothStop'):
-      self.STOPPING_SPEED = 0.3
-      self.STARTING_SPEED = 0.3
-    else:
       self.STOPPING_SPEED = 0.05
       self.STARTING_SPEED = 0.05
+    else:
+      self.STOPPING_SPEED = 0.3
+      self.STARTING_SPEED = 0.3
 
 # Car button codes
 class CruiseButtons:
