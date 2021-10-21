@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from common.numpy_fast import interp
+from common.params import Params # TODO: Raise braking profiles slightly for users with no pedal. Current braking is too late
 
 # Variables that change braking profiles
 ONE_BAR_DISTANCE = 0.9
