@@ -29,7 +29,7 @@ class CarInterface(CarInterfaceBase):
   def get_pid_accel_limits(CP, current_speed, cruise_speed):
     # NIDECs don't allow acceleration near cruise_speed,
     # so limit limits of pid to prevent windup
-    ACCEL_MAX_VALS = [ACCEL_MAX, 1.5] if CP.enableGasInterceptor else [ACCEL_MAX, 0.0]
+    ACCEL_MAX_VALS = [ACCEL_MAX, 1.5] if CP.enableGasInterceptor else [ACCEL_MAX, 0.4]
     ACCEL_MAX_BP = [cruise_speed - 2., cruise_speed - .2]
     return ACCEL_MIN, interp(current_speed, ACCEL_MAX_BP, ACCEL_MAX_VALS)
 
@@ -73,7 +73,7 @@ class CarInterface(CarInterfaceBase):
 
     # https://github.com/commaai/openpilot/wiki/Tuning#how-the-breakpoint-and-value-lists-work
     # default longitudinal tuning for all hondas
-    if Params().get_bool('ChillTune'):
+    if not ret.enableGasInterceptor or Params().get_bool('ChillTune'):
       ret.longitudinalTuning.kpBP = [0., 5., 35.]
       ret.longitudinalTuning.kpV = [.5, 0.3, 0.2]
       ret.longitudinalTuning.kiBP = [0., 35.]
