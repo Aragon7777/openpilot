@@ -3,14 +3,14 @@ from common.numpy_fast import interp
 from common.params import Params # TODO: Raise braking profiles slightly for users with no pedal. Current braking is too late
 
 # Variables that change braking profiles
-ONE_BAR_DISTANCE = 0.9
+ONE_BAR_DISTANCE = 1.0
 TWO_BAR_DISTANCE = 1.3
 THREE_BAR_DISTANCE = 1.8
 FOUR_BAR_DISTANCE = 2.3
 STOPPING_DISTANCE = 0.5
 SNG_DISTANCE = 1.8
-SNG_SPEED = 8
-CITY_SPEED = 16
+SNG_SPEED = 15
+CITY_SPEED = 22.35
 HIGHWAY_SPEED = 24
 COSTS_TR = [0.9, 1.8, 2.7]
 COSTS_DISTANCE = [1., 0.1, 0.01]
@@ -38,12 +38,12 @@ class FollowProfile:
 ONE_BAR_PROFILE = FollowProfile(
   vEgoProfiles=(
     vEgoProfile(vEgo=SNG_SPEED, v_rel=[1], TR=[SNG_DISTANCE]),
-    vEgoProfile(vEgo=CITY_SPEED, v_rel=[-0.1, 1.25], TR=[ONE_BAR_DISTANCE, 2.1]),
+    vEgoProfile(vEgo=CITY_SPEED, v_rel=[0], TR=[ONE_BAR_DISTANCE, 2.1]),
     vEgoProfile(vEgo=HIGHWAY_SPEED, v_rel=[0.0, 1.0], TR=[ONE_BAR_DISTANCE, ONE_BAR_DISTANCE+0.4]),))
 TWO_BAR_PROFILE = FollowProfile(
   vEgoProfiles=(
     vEgoProfile(vEgo=SNG_SPEED, v_rel=[0], TR=[SNG_DISTANCE]),
-    vEgoProfile(vEgo=CITY_SPEED, v_rel=[-0.1, 1.5], TR=[TWO_BAR_DISTANCE, 2.1]),
+    vEgoProfile(vEgo=CITY_SPEED, v_rel=[0], TR=[TWO_BAR_DISTANCE, 2.1]),
     vEgoProfile(vEgo=HIGHWAY_SPEED, v_rel=[0.0, 2.0], TR=[TWO_BAR_DISTANCE, TWO_BAR_DISTANCE+0.3]),))
 THREE_BAR_PROFILE = FollowProfile(
   vEgoProfiles=(
