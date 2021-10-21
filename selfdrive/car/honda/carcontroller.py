@@ -125,6 +125,11 @@ class CarController():
     # *** apply brake hysteresis ***
     pre_limit_brake, self.braking, self.brake_steady = actuator_hystereses(brake, self.braking, self.brake_steady, CS.out.vEgo, CS.CP.carFingerprint)
 
+    # *** no output if not enabled ***
+    if not enabled and CS.out.cruiseState.enabled:
+      # send pcm acc cancel cmd if drive is disabled but pcm is still on, or if the system can't be activated
+      pcm_cancel_cmd = True if not CS.CP.enableGasInterceptor else False
+
     # *** rate limit after the enable check ***
     self.brake_last = rate_limit(pre_limit_brake, self.brake_last, -2., DT_CTRL)
 
@@ -196,7 +201,7 @@ class CarController():
       pcm_speed_V = [0.0,
                      clip(CS.out.vEgo - 2.0, 0.0, 100.0),
                      clip(CS.out.vEgo + 2.0, 0.0, 100.0),
-                     clip(CS.out.vEgo + 3.0, 0.0, 100.0)]
+                     clip(CS.out.vEgo + 5.0, 0.0, 100.0)]
       pcm_speed = interp(gas-brake, pcm_speed_BP, pcm_speed_V)
       pcm_accel = int(clip((accel/1.44)/max_accel, 0.0, 1.0) * 0xc6)
 
@@ -228,13 +233,8 @@ class CarController():
           if not CS.out.cruiseState.enabled and not (CS.CP.pcmCruise and CS.accEnabled and CS.CP.minEnableSpeed > 0 and not CS.out.cruiseState.enabled):
             apply_brake = 0.
           pump_on, self.last_pump_on_state = brake_pump_hysteresis(apply_brake, self.apply_brake_last, self.last_pump_on_state, ts)
-          # Do NOT send the cancel command if we are using the pedal. Sending cancel causes the car firmware to
-          # turn the brake pump off, and we don't want that. Stock ACC does not send the cancel cmd when it is braking.
 
-        if CS.CP.enableGasInterceptor:
-          pcm_cancel_cmd = False
-
-          pcm_override = False
+          pcm_override = True
           can_sends.append(hondacan.create_brake_command(self.packer, apply_brake, pump_on,
             pcm_override, pcm_cancel_cmd, fcw_display, idx, CS.CP.carFingerprint, CS.stock_brake))
           self.apply_brake_last = apply_brake
