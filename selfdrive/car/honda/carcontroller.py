@@ -170,8 +170,8 @@ class CarController():
 
 
     # TODO: pass in LoC.long_control_state and use that to decide starting/stoppping
-    stopping = accel < 0 and CS.out.vEgo < (0.05 if Params().get_bool('SmoothStop') else 0.3)
-    starting = accel > 0 and CS.out.vEgo < (0.05 if Params().get_bool('SmoothStop') else 0.3)
+    stopping = accel < 0 and CS.out.vEgo < P.STOPPING_SPEED
+    starting = accel > 0 and CS.out.vEgo < P.STARTING_SPEED
 
     # Prevent rolling backwards
     accel = -4.0 if stopping else accel
