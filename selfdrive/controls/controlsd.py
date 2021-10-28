@@ -57,7 +57,8 @@ class Controls:
     self.accel_pressed_last = 0.
     self.decel_pressed_last = 0.
     self.fastMode = False
-    
+    self.cruise_multiplier = 1.0076 if Params().get_bool('CivicSpeedAdjustment') else 1.
+
     # Setup sockets
     self.pm = pm
     if self.pm is None:
@@ -640,7 +641,10 @@ class Controls:
     controlsState.forceDecel = bool(force_decel)
     controlsState.canErrorCounter = self.can_error_counter
     controlsState.steeringAngleDesiredDeg = actuators.steeringAngleDeg
-    
+
+    if controlsState.vCruise != 255:
+      controlsState.vCruise *= self.cruise_multiplier
+
     if self.joystick_mode:
       controlsState.lateralControlState.debugState = lac_log
     elif self.CP.steerControlType == car.CarParams.SteerControlType.angle:

@@ -43,7 +43,7 @@ def get_steer_max(CP, v_ego):
   return interp(v_ego, CP.steerMaxBP, CP.steerMaxV)
 
 
-def _update_v_cruise(v_cruise_kph, buttonEvents, enabled, cur_time, accel_pressed,decel_pressed,accel_pressed_last,decel_pressed_last, fastMode):
+def update_v_cruise(v_cruise_kph, buttonEvents, enabled, cur_time, accel_pressed,decel_pressed,accel_pressed_last,decel_pressed_last, fastMode):
   if enabled:
     if accel_pressed:
       if ((cur_time-accel_pressed_last) >= 0.5 or (fastMode and (cur_time-accel_pressed_last) >= 0.5)):
@@ -86,22 +86,9 @@ def _update_v_cruise_speed_inc(v_cruise_kph, buttonEvents, enabled, cur_time, ac
 
   return v_cruise_kph
 
-update_v_cruise = _update_v_cruise
 
 if params.get_bool('SpeedInc'):
-  update_v_cruise = _update_v_cruise = _update_v_cruise_speed_inc
-
-
-def _update_v_cruise_civic_speed_adjustment(v_cruise_kph, buttonEvents, enabled, cur_time, accel_pressed,decel_pressed,accel_pressed_last,decel_pressed_last, fastMode):
-  v_cruise_kph = int(round((float(v_cruise_kph) * 0.6233 + 0.0995)))
-  v_cruise_kph = _update_v_cruise(v_cruise_kph, buttonEvents, enabled, cur_time, accel_pressed,decel_pressed,accel_pressed_last,decel_pressed_last, fastMode)
-  v_cruise_kph = int(round((float(round(v_cruise_kph))-0.0995)/0.6233))
-  return v_cruise_kph
-
-
-if params.get_bool('CivicSpeedAdjustment') and not params.get_bool("IsMetric"):
-  update_v_cruise = _update_v_cruise_civic_speed_adjustment
-
+  update_v_cruise = _update_v_cruise_speed_inc
 
 
 def initialize_v_cruise(v_ego, buttonEvents, v_cruise_last):
